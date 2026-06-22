@@ -32,6 +32,9 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [reports, setReports] = useState<SavedReport[]>([]);
+  const [selectedReport, setSelectedReport] = useState<SavedReport | null>(
+    null
+  );
   const [loading, setLoading] = useState(false);
 
   const fetchReports = async () => {
@@ -178,7 +181,7 @@ function App() {
           <div>
             {reports.map((report) => (
               <div key={report.id} className="report-row">
-                <button onClick={() => alert(`Report ID: ${report.id}`)}>
+                <button onClick={() => setSelectedReport(report)}>
                   #{report.id}
                 </button>
 
@@ -194,6 +197,36 @@ function App() {
           </div>
         )}
       </section>
+
+      {selectedReport && (
+        <section className="card report">
+          <h2>Selected Report</h2>
+
+          <p>
+            <strong>ID:</strong> #{selectedReport.id}
+          </p>
+
+          <p>
+            <strong>Filename:</strong> {selectedReport.filename}
+          </p>
+
+          <p>
+            <strong>Threat Level:</strong> {selectedReport.threat_level}
+          </p>
+
+          <p>
+            <strong>Attack Type:</strong> {selectedReport.attack_type}
+          </p>
+
+          <p>
+            <strong>Created At:</strong> {selectedReport.created_at}
+          </p>
+
+          <p>
+            <strong>Summary:</strong> {selectedReport.summary}
+          </p>
+        </section>
+      )}
     </main>
   );
 }
