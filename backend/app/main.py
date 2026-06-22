@@ -1,5 +1,5 @@
+from fastapi import FastAPI, UploadFile, File
 from app.services.log_parser import analyze_ssh_log
-from fastapi import FastAPI
 
 app = FastAPI(
     title="ThreatLens AI API",
@@ -27,3 +27,14 @@ def test_analysis():
 
     return analyze_ssh_log(sample_log)
 
+@app.post("/upload-log")
+async def upload_log(file: UploadFile = File(...)):
+    contents = await file.read()
+    log_text = contents.decode("utf-8")
+
+    analysis = analyze_ssh_log(log_text)
+
+    return {
+        "filename": file.filename,
+        "analysis": analysis
+    }
