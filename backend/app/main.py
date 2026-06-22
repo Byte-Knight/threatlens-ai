@@ -1,8 +1,12 @@
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.services.log_parser import parse_log
 from app.services.threat_detector import detect_threats
 from app.services.report_generator import generate_incident_report
+
+from app.database import Base, engine, SessionLocal
+from app.models.report import Report
 
 
 app = FastAPI(
@@ -10,6 +14,16 @@ app = FastAPI(
     description="Backend API for analyzing cybersecurity logs.",
     version="0.1.0",
 )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+Base.metadata.create_all(bind=engine)
 
 
 def analyze_log(log_text: str):
@@ -56,7 +70,37 @@ async def upload_log(file: UploadFile = File(...)):
 
     analysis = analyze_log(log_text)
 
+    db = SessionLocal()
+
+    report = Report(
+        filename=file.filename,
+        threat_level=analysis["threat_level"],
+        attack_type=analysis["attack_type"],
+        summary=analysis["incident_report"]["summary"],
+    )
+
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    db.close()
+
     return {
         "filename": file.filename,
+        "report_id": report.id,
         "analysis": analysis,
     }
+
+
+@app.get("/reports")
+def get_reports():
+    db = SessionLocal()
+
+    reports = (
+        db.query(Report)
+        .order_by(Report.created_at.desc())
+        .all()
+    )
+
+    db.close()
+
+    return reports
