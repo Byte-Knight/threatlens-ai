@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./App.css";
 
 type IncidentReport = {
   title: string;
@@ -31,26 +32,17 @@ function App() {
 
     const formData = new FormData();
     formData.append("file", selectedFile);
-
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/upload-log",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
+      const response = await fetch("http://127.0.0.1:8000/upload-log", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
       const data = await response.json();
-
-      console.log("Backend response:", data);
-
       setAnalysis(data.analysis);
     } catch (error) {
       console.error("Upload error:", error);
@@ -61,111 +53,88 @@ function App() {
   };
 
   return (
-    <div
-      style={{
-        maxWidth: "1000px",
-        margin: "0 auto",
-        padding: "40px",
-        fontFamily: "Arial",
-      }}
-    >
-      <h1>🛡️ ThreatLens AI</h1>
+    <main className="page">
+      <section className="hero">
+        <h1>🛡️ ThreatLens AI</h1>
+        <p>AI-powered cybersecurity threat analysis platform.</p>
+      </section>
 
-      <p>AI-powered cybersecurity threat analysis platform.</p>
+      <section className="card upload-card">
+        <h2>Upload Security Log</h2>
+        <input type="file" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+        <button onClick={handleUpload} disabled={loading}>
+          {loading ? "Analyzing..." : "Analyze Log"}
+        </button>
+      </section>
 
-      <hr />
-
-      <h2>Upload Security Log</h2>
-
-      <input
-        type="file"
-        onChange={(e) =>
-          setSelectedFile(e.target.files?.[0] || null)
-        }
-      />
-
-      <br />
-      <br />
-
-      <button onClick={handleUpload} disabled={loading}>
-        {loading ? "Analyzing..." : "Analyze Log"}
-      </button>
-
-      <hr />
-
-      <h2>Threat Analysis Results</h2>
-
-      {!analysis && <p>No analysis yet.</p>}
+      {!analysis && (
+        <section className="card empty-state">
+          <h2>Threat Analysis Results</h2>
+          <p>No analysis yet. Upload a log file to begin.</p>
+        </section>
+      )}
 
       {analysis && (
-        <div>
-          <h3>Threat Level</h3>
-          <p>{analysis.threat_level}</p>
+        <>
+          <section className="grid">
+            <div className="card">
+              <h3>Threat Level</h3>
+              <span className={`badge ${analysis.threat_level.toLowerCase()}`}>
+                {analysis.threat_level}
+              </span>
+            </div>
 
-          <h3>Attack Type</h3>
-          <p>{analysis.attack_type}</p>
+            <div className="card">
+              <h3>Failed Logins</h3>
+              <p className="metric">{analysis.failed_logins}</p>
+            </div>
 
-          <h3>Failed Logins</h3>
-          <p>{analysis.failed_logins}</p>
+            <div className="card">
+              <h3>Successful Logins</h3>
+              <p className="metric">{analysis.successful_logins}</p>
+            </div>
+          </section>
 
-          <h3>Successful Logins</h3>
-          <p>{analysis.successful_logins}</p>
+          <section className="card">
+            <h2>Detected Attacks</h2>
+            <p>{analysis.attack_type}</p>
+          </section>
 
-          <h3>Suspicious IPs</h3>
-          <ul>
-            {analysis.suspicious_ips?.map(
-              (ip: string, index: number) => (
-                <li key={index}>{ip}</li>
-              )
-            )}
-          </ul>
+          <section className="grid two">
+            <div className="card">
+              <h3>Suspicious IPs</h3>
+              <ul>
+                {analysis.suspicious_ips.map((ip, index) => (
+                  <li key={index}>{ip}</li>
+                ))}
+              </ul>
+            </div>
 
-          <h3>Recommendations</h3>
-          <ul>
-            {analysis.recommendations?.map(
-              (item: string, index: number) => (
+            <div className="card">
+              <h3>Recommendations</h3>
+              <ul>
+                {analysis.recommendations.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section className="card report">
+            <h2>Incident Report</h2>
+            <h3>{analysis.incident_report.title}</h3>
+            <p>{analysis.incident_report.summary}</p>
+
+            <h4>Evidence</h4>
+            <ul>
+              {analysis.incident_report.evidence.map((item, index) => (
                 <li key={index}>{item}</li>
-              )
-            )}
-          </ul>
-
-          {analysis.incident_report && (
-            <>
-              <hr />
-
-              <h2>Incident Report</h2>
-
-              <h3>{analysis.incident_report.title}</h3>
-
-              <p>
-                <strong>Severity:</strong>{" "}
-                {analysis.incident_report.severity}
-              </p>
-
-              <p>{analysis.incident_report.summary}</p>
-
-              <h4>Evidence</h4>
-              <ul>
-                {analysis.incident_report.evidence?.map(
-                  (item: string, index: number) => (
-                    <li key={index}>{item}</li>
-                  )
-                )}
-              </ul>
-
-              <h4>Recommended Actions</h4>
-              <ul>
-                {analysis.incident_report.recommended_actions?.map(
-                  (item: string, index: number) => (
-                    <li key={index}>{item}</li>
-                  )
-                )}
-              </ul>
-            </>
-          )}
-        </div>
+              ))}
+            </ul>
+          </section>
+        </>
       )}
-    </div>
+    </main>
   );
 }
 
