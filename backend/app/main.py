@@ -104,3 +104,21 @@ def get_reports():
     db.close()
 
     return reports
+
+@app.get("/reports/{report_id}")
+def get_report(report_id: int):
+
+    db = SessionLocal()
+
+    report = (
+        db.query(Report)
+        .filter(Report.id == report_id)
+        .first()
+    )
+
+    db.close()
+
+    if not report:
+        return {"error": "Report not found"}
+
+    return report

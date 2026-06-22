@@ -129,3 +129,16 @@ li {
     font-size: 36px;
   }
 }
+
+.report-row {
+  display: grid;
+  grid-template-columns: 60px 180px 100px 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.report-row:last-child {
+  border-bottom: none;
+}

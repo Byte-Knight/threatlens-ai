@@ -19,10 +19,35 @@ type Analysis = {
   incident_report: IncidentReport;
 };
 
+type SavedReport = {
+  id: number;
+  filename: string;
+  threat_level: string;
+  attack_type: string;
+  summary: string;
+  created_at: string;
+};
+
 function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
+  const [reports, setReports] = useState<SavedReport[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const fetchReports = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:8000/reports");
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setReports(data);
+    } catch (error) {
+      console.error("Failed to fetch reports:", error);
+    }
+  };
 
   const handleUpload = async () => {
     if (!selectedFile) {
@@ -40,10 +65,14 @@ function App() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
 
       const data = await response.json();
+
       setAnalysis(data.analysis);
+      fetchReports();
     } catch (error) {
       console.error("Upload error:", error);
       alert("Upload failed. Check browser console.");
@@ -61,7 +90,12 @@ function App() {
 
       <section className="card upload-card">
         <h2>Upload Security Log</h2>
-        <input type="file" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} />
+
+        <input
+          type="file"
+          onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+        />
+
         <button onClick={handleUpload} disabled={loading}>
           {loading ? "Analyzing..." : "Analyze Log"}
         </button>
@@ -134,6 +168,32 @@ function App() {
           </section>
         </>
       )}
+
+      <section className="card">
+        <h2>Recent Reports</h2>
+
+        {reports.length === 0 && <p>No saved reports loaded yet.</p>}
+
+        {reports.length > 0 && (
+          <div>
+            {reports.map((report) => (
+              <div key={report.id} className="report-row">
+                <button onClick={() => alert(`Report ID: ${report.id}`)}>
+                  #{report.id}
+                </button>
+
+                <span>{report.filename}</span>
+
+                <span className={`badge ${report.threat_level.toLowerCase()}`}>
+                  {report.threat_level}
+                </span>
+
+                <span>{report.attack_type}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </main>
   );
 }
