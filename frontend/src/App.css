@@ -132,7 +132,7 @@ li {
 
 .report-row {
   display: grid;
-  grid-template-columns: 60px 180px 100px 1fr;
+  grid-template-columns: 60px 180px 100px 1fr 100px;
   gap: 16px;
   align-items: center;
   padding: 14px 0;
@@ -141,4 +141,37 @@ li {
 
 .report-row:last-child {
   border-bottom: none;
+}
+
+.filter-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.filter-row input,
+.filter-row select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+
+.dashboard-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.stat-card {
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }

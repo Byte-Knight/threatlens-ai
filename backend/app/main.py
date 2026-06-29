@@ -122,3 +122,23 @@ def get_report(report_id: int):
         return {"error": "Report not found"}
 
     return report
+
+@app.delete("/reports/{report_id}")
+def delete_report(report_id: int):
+    db = SessionLocal()
+
+    report = (
+        db.query(Report)
+        .filter(Report.id == report_id)
+        .first()
+    )
+
+    if not report:
+        db.close()
+        return {"error": "Report not found"}
+
+    db.delete(report)
+    db.commit()
+    db.close()
+
+    return {"message": "Report deleted successfully"}

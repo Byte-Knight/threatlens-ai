@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./App.css";
 
 type IncidentReport = {
@@ -36,8 +36,10 @@ function App() {
     null
   );
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterLevel, setFilterLevel] = useState("ALL");
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       const response = await fetch("http://127.0.0.1:8000/reports");
 
@@ -49,6 +51,61 @@ function App() {
       setReports(data);
     } catch (error) {
       console.error("Failed to fetch reports:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchReports();
+  }, [fetchReports]);
+
+  const totalReports = reports.length;
+
+  const highSeverityReports = reports.filter(
+    (report) => report.threat_level === "HIGH"
+  ).length;
+
+  const lowSeverityReports = reports.filter(
+    (report) => report.threat_level === "LOW"
+  ).length;
+
+  const uniqueAttackTypes = new Set(
+    reports.map((report) => report.attack_type)
+  ).size;
+
+  const filteredReports = reports.filter((report) => {
+    const search = searchTerm.toLowerCase();
+
+    const matchesSearch =
+      report.filename.toLowerCase().includes(search) ||
+      report.attack_type.toLowerCase().includes(search) ||
+      report.summary.toLowerCase().includes(search);
+
+    const matchesLevel =
+      filterLevel === "ALL" || report.threat_level === filterLevel;
+
+    return matchesSearch && matchesLevel;
+  });
+
+  const deleteReport = async (id: number) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/reports/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete report");
+      }
+
+      setReports((currentReports) =>
+        currentReports.filter((report) => report.id !== id)
+      );
+
+      if (selectedReport?.id === id) {
+        setSelectedReport(null);
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Could not delete report.");
     }
   };
 
@@ -75,7 +132,7 @@ function App() {
       const data = await response.json();
 
       setAnalysis(data.analysis);
-      fetchReports();
+      void fetchReports();
     } catch (error) {
       console.error("Upload error:", error);
       alert("Upload failed. Check browser console.");
@@ -87,7 +144,7 @@ function App() {
   return (
     <main className="page">
       <section className="hero">
-        <h1>🛡️ ThreatLens AI</h1>
+        <h1>🛡️ ThreatLens AI 🛡️</h1>
         <p>AI-powered cybersecurity threat analysis platform.</p>
       </section>
 
@@ -102,6 +159,28 @@ function App() {
         <button onClick={handleUpload} disabled={loading}>
           {loading ? "Analyzing..." : "Analyze Log"}
         </button>
+      </section>
+
+      <section className="grid dashboard-grid">
+        <div className="card stat-card">
+          <h3>Total Reports</h3>
+          <p className="metric">{totalReports}</p>
+        </div>
+
+        <div className="card stat-card">
+          <h3>High Severity</h3>
+          <p className="metric">{highSeverityReports}</p>
+        </div>
+
+        <div className="card stat-card">
+          <h3>Low Severity</h3>
+          <p className="metric">{lowSeverityReports}</p>
+        </div>
+
+        <div className="card stat-card">
+          <h3>Attack Categories</h3>
+          <p className="metric">{uniqueAttackTypes}</p>
+        </div>
       </section>
 
       {!analysis && (
@@ -175,11 +254,33 @@ function App() {
       <section className="card">
         <h2>Recent Reports</h2>
 
+        <div className="filter-row">
+          <input
+            type="text"
+            placeholder="Search reports..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+
+          <select
+            value={filterLevel}
+            onChange={(e) => setFilterLevel(e.target.value)}
+          >
+            <option value="ALL">All severities</option>
+            <option value="HIGH">High</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+
         {reports.length === 0 && <p>No saved reports loaded yet.</p>}
 
-        {reports.length > 0 && (
+        {reports.length > 0 && filteredReports.length === 0 && (
+          <p>No reports match your search/filter.</p>
+        )}
+
+        {filteredReports.length > 0 && (
           <div>
-            {reports.map((report) => (
+            {filteredReports.map((report) => (
               <div key={report.id} className="report-row">
                 <button onClick={() => setSelectedReport(report)}>
                   #{report.id}
@@ -192,6 +293,13 @@ function App() {
                 </span>
 
                 <span>{report.attack_type}</span>
+
+                <button
+                  className="delete-btn"
+                  onClick={() => void deleteReport(report.id)}
+                >
+                  Delete
+                </button>
               </div>
             ))}
           </div>
