@@ -30,6 +30,9 @@ def detect_threats(parsed_log: dict):
     if parsed_log["port_scan_attempts"] >= 5:
         detected_attacks.append("Port Scan")
 
+    if parsed_log["request_count"] >= 10:
+        detected_attacks.append("DDoS / Request Flooding")
+
     if any(re.search(pattern, log_text) for pattern in sql_injection_patterns):
         detected_attacks.append("SQL Injection")
 
@@ -57,6 +60,14 @@ def detect_threats(parsed_log: dict):
             "Review firewall rules",
             "Block scanning source IPs",
             "Check for exposed services",
+        ])
+
+    if "DDoS / Request Flooding" in detected_attacks:
+        recommendations.extend([
+            "Rate-limit repeated requests",
+            "Block abusive source IPs",
+            "Enable DDoS protection through a CDN or firewall",
+            "Review web server traffic spikes",
         ])
 
     if "SQL Injection" in detected_attacks:

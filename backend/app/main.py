@@ -42,6 +42,7 @@ def analyze_log(log_text: str):
         "failed_logins": parsed_log["failed_logins"],
         "successful_logins": parsed_log["successful_logins"],
         "port_scan_attempts": parsed_log["port_scan_attempts"],
+        "request_count": parsed_log["request_count"],
         "suspicious_ips": parsed_log["suspicious_ips"],
         "incident_report": incident_report,
     }
