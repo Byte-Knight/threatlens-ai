@@ -72,6 +72,10 @@ function App() {
     void fetchReports();
   }, [fetchReports]);
 
+  const downloadPdf = (id: number) => {
+    window.open(`http://127.0.0.1:8000/reports/${id}/pdf`, "_blank");
+  };
+
   const totalReports = reports.length;
 
   const highSeverityReports = reports.filter(
@@ -426,6 +430,10 @@ function App() {
           <p>
             <strong>Summary:</strong> {selectedReport.summary}
           </p>
+
+          <button onClick={() => downloadPdf(selectedReport.id)}>
+            Download PDF
+          </button>
         </section>
       )}
     </main>

@@ -1,5 +1,11 @@
-from fastapi import FastAPI, UploadFile, File
+from io import BytesIO
+
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 from app.services.log_parser import parse_log
 from app.services.threat_detector import detect_threats
@@ -82,11 +88,14 @@ async def upload_log(file: UploadFile = File(...)):
     db.add(report)
     db.commit()
     db.refresh(report)
+
+    report_id = report.id
+
     db.close()
 
     return {
         "filename": file.filename,
-        "report_id": report.id,
+        "report_id": report_id,
         "analysis": analysis,
     }
 
@@ -105,9 +114,9 @@ def get_reports():
 
     return reports
 
+
 @app.get("/reports/{report_id}")
 def get_report(report_id: int):
-
     db = SessionLocal()
 
     report = (
@@ -119,9 +128,103 @@ def get_report(report_id: int):
     db.close()
 
     if not report:
-        return {"error": "Report not found"}
+        raise HTTPException(status_code=404, detail="Report not found")
 
     return report
+
+
+@app.get("/reports/{report_id}/pdf")
+def download_report_pdf(report_id: int):
+    db = SessionLocal()
+
+    report = (
+        db.query(Report)
+        .filter(Report.id == report_id)
+        .first()
+    )
+
+    db.close()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+
+    width, height = letter
+    y = height - 60
+
+    pdf.setFont("Helvetica-Bold", 20)
+    pdf.drawString(50, y, "ThreatLens AI")
+    y -= 30
+
+    pdf.setFont("Helvetica-Bold", 16)
+    pdf.drawString(50, y, "Cybersecurity Incident Report")
+    y -= 40
+
+    pdf.setFont("Helvetica", 11)
+    pdf.drawString(50, y, f"Report ID: #{report.id}")
+    y -= 22
+
+    pdf.drawString(50, y, f"Filename: {report.filename}")
+    y -= 22
+
+    pdf.drawString(50, y, f"Threat Level: {report.threat_level}")
+    y -= 22
+
+    pdf.drawString(50, y, f"Created At: {report.created_at}")
+    y -= 35
+
+    pdf.setFont("Helvetica-Bold", 13)
+    pdf.drawString(50, y, "Attack Type")
+    y -= 20
+
+    pdf.setFont("Helvetica", 11)
+    text = pdf.beginText(50, y)
+    text.setLeading(16)
+
+    for line in report.attack_type.split(", "):
+        text.textLine(f"- {line}")
+
+    pdf.drawText(text)
+    y -= 100
+
+    pdf.setFont("Helvetica-Bold", 13)
+    pdf.drawString(50, y, "Summary")
+    y -= 20
+
+    pdf.setFont("Helvetica", 11)
+    text = pdf.beginText(50, y)
+    text.setLeading(16)
+
+    words = report.summary.split()
+    line = ""
+
+    for word in words:
+        if len(line + word) < 85:
+            line += word + " "
+        else:
+            text.textLine(line)
+            line = word + " "
+
+    if line:
+        text.textLine(line)
+
+    pdf.drawText(text)
+
+    pdf.showPage()
+    pdf.save()
+
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=threatlens_report_{report.id}.pdf"
+        },
+    )
+
 
 @app.delete("/reports/{report_id}")
 def delete_report(report_id: int):
@@ -135,7 +238,7 @@ def delete_report(report_id: int):
 
     if not report:
         db.close()
-        return {"error": "Report not found"}
+        raise HTTPException(status_code=404, detail="Report not found")
 
     db.delete(report)
     db.commit()
