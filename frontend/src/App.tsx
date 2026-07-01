@@ -1,4 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import "./App.css";
 
 type IncidentReport = {
@@ -27,6 +39,8 @@ type SavedReport = {
   summary: string;
   created_at: string;
 };
+
+const CHART_COLORS = ["#ef4444", "#22c55e", "#f59e0b", "#3b82f6"];
 
 function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -71,6 +85,31 @@ function App() {
   const uniqueAttackTypes = new Set(
     reports.map((report) => report.attack_type)
   ).size;
+
+  const threatLevelData = [
+    { name: "High", value: highSeverityReports },
+    { name: "Low", value: lowSeverityReports },
+  ].filter((item) => item.value > 0);
+
+  const attackFrequencyMap = reports.reduce<Record<string, number>>(
+    (accumulator, report) => {
+      const attacks = report.attack_type.split(", ");
+
+      attacks.forEach((attack) => {
+        accumulator[attack] = (accumulator[attack] || 0) + 1;
+      });
+
+      return accumulator;
+    },
+    {}
+  );
+
+  const attackChartData = Object.entries(attackFrequencyMap).map(
+    ([attack, count]) => ({
+      attack,
+      count,
+    })
+  );
 
   const filteredReports = reports.filter((report) => {
     const search = searchTerm.toLowerCase();
@@ -180,6 +219,60 @@ function App() {
         <div className="card stat-card">
           <h3>Attack Categories</h3>
           <p className="metric">{uniqueAttackTypes}</p>
+        </div>
+      </section>
+
+      <section className="grid two">
+        <div className="card chart-card">
+          <h2>Threat Level Distribution</h2>
+
+          {threatLevelData.length === 0 ? (
+            <p>No chart data yet.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={threatLevelData}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={90}
+                  label
+                >
+                  {threatLevelData.map((entry, index) => (
+                    <Cell
+                      key={entry.name}
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="card chart-card">
+          <h2>Attack Type Frequency</h2>
+
+          {attackChartData.length === 0 ? (
+            <p>No chart data yet.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={attackChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="attack"
+                  angle={-35}
+                  textAnchor="end"
+                  interval={0}
+                  height={100}
+                />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </section>
 
